@@ -12,7 +12,7 @@ const DashboardLayout = async ({ children }: DashboardLayoutProps) => {
     redirect("/sign-in");
   }
 
-  return { children };
+  return <div className="w-full h-full">{children}</div>;
 };
 
 export default DashboardLayout;
