@@ -18,13 +18,16 @@ export const Banner = () => {
     mutation.mutate(
       {
         name: "Untitled project",
-        json: "",
-        width: 900,
-        height: 1200,
+        thumbnailUrl: "", // Default thumbnail, adjust as needed
+        isTemplate: false,
+        isPro: false,
       },
       {
-        onSuccess: ({ data }) => {
-          router.push(`/editor/${data.id}`);
+        onSuccess: ({ project }) => {
+          router.push(`/editor/${project.id}`);
+        },
+        onSettled: () => {
+          setLoading(false); // Reset loading regardless of success or error
         },
       }
     );
@@ -38,9 +41,12 @@ export const Banner = () => {
         </div>
       </div>
       <div className="flex flex-col gap-y-2">
-        <h1 className="text-xl md:text-3xl font-semibold">Visualize your ideas with The Canvas</h1>
+        <h1 className="text-xl md:text-3xl font-semibold">
+          Visualize your ideas with The Canvas
+        </h1>
         <p className="text-xs md:text-sm mb-2">
-          Turn inspiration into design in no time. Simply upload an image and let AI do the rest.
+          Turn inspiration into design in no time. Simply upload an image and
+          let AI do the rest.
         </p>
         <Button
           disabled={mutation.isPending}

@@ -6,6 +6,7 @@ import { zValidator } from "@hono/zod-validator";
 
 import { db } from "@/db/drizzle";
 import { projects, projectsInsertSchema } from "@/db/schema";
+import { pages } from "@/db/schema"; // Import pages schema
 
 const app = new Hono()
   .get(
@@ -16,7 +17,7 @@ const app = new Hono()
       z.object({
         page: z.coerce.number(),
         limit: z.coerce.number(),
-      }),
+      })
     ),
     async (c) => {
       const { page, limit } = c.req.valid("query");
@@ -26,14 +27,11 @@ const app = new Hono()
         .from(projects)
         .where(eq(projects.isTemplate, true))
         .limit(limit)
-        .offset((page -1) * limit)
-        .orderBy(
-          asc(projects.isPro),
-          desc(projects.updatedAt),
-        );
+        .offset((page - 1) * limit)
+        .orderBy(asc(projects.isPro), desc(projects.updatedAt));
 
       return c.json({ data });
-    },
+    }
   )
   .delete(
     "/:id",
@@ -49,12 +47,7 @@ const app = new Hono()
 
       const data = await db
         .delete(projects)
-        .where(
-          and(
-            eq(projects.id, id),
-            eq(projects.userId, auth.token.id),
-          ),
-        )
+        .where(and(eq(projects.id, id), eq(projects.userId, auth.token.id)))
         .returning();
 
       if (data.length === 0) {
@@ -62,51 +55,68 @@ const app = new Hono()
       }
 
       return c.json({ data: { id } });
-    },
+    }
   )
   .post(
-    "/:id/duplicate",
+    "/",
     verifyAuth(),
-    zValidator("param", z.object({ id: z.string() })),
+    zValidator(
+      "json",
+      projectsInsertSchema.pick({
+        name: true,
+        isTemplate: true,
+        isPro: true,
+        thumbnailUrl: true, // Updated fields for new projects
+      })
+    ),
     async (c) => {
       const auth = c.get("authUser");
-      const { id } = c.req.valid("param");
+      const { name, isTemplate, isPro, thumbnailUrl } = c.req.valid("json");
 
       if (!auth.token?.id) {
         return c.json({ error: "Unauthorized" }, 401);
       }
 
-      const data = await db
-        .select()
-        .from(projects)
-        .where(
-          and(
-            eq(projects.id, id),
-            eq(projects.userId, auth.token.id),
-          ),
-        );
-
-      if (data.length === 0) {
-        return c.json({ error:" Not found" }, 404);
-      }
-
-      const project = data[0];
-
-      const duplicateData = await db
+      // Create a new project
+      const projectData = await db
         .insert(projects)
         .values({
-          name: `Copy of ${project.name}`,
-          json: project.json,
-          width: project.width,
-          height: project.height,
+          name,
           userId: auth.token.id,
+          thumbnailUrl,
+          isTemplate,
+          isPro,
           createdAt: new Date(),
           updatedAt: new Date(),
         })
         .returning();
 
-      return c.json({ data: duplicateData[0] });
-    },
+      const newProject = projectData[0];
+
+      if (!newProject) {
+        return c.json({ error: "Project creation failed" }, 400);
+      }
+
+      // Insert the initial page for the new project
+      const pageData = await db
+        .insert(pages)
+        .values({
+          projectId: newProject.id,
+          pageNumber: 1, // Start with the first page
+          name: "Page 1", // Default name for initial page
+          json: "{}", // Initial empty JSON data for the page
+          width: 800, // Default width
+          height: 600, // Default height
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      return c.json({
+        project: newProject,
+        initialPage: pageData[0],
+      });
+    }
   )
   .get(
     "/",
@@ -116,7 +126,7 @@ const app = new Hono()
       z.object({
         page: z.coerce.number(),
         limit: z.coerce.number(),
-      }),
+      })
     ),
     async (c) => {
       const auth = c.get("authUser");
@@ -132,21 +142,18 @@ const app = new Hono()
         .where(eq(projects.userId, auth.token.id))
         .limit(limit)
         .offset((page - 1) * limit)
-        .orderBy(desc(projects.updatedAt))
+        .orderBy(desc(projects.updatedAt));
 
       return c.json({
         data,
         nextPage: data.length === limit ? page + 1 : null,
       });
-    },
+    }
   )
   .patch(
     "/:id",
     verifyAuth(),
-    zValidator(
-      "param",
-      z.object({ id: z.string() }),
-    ),
+    zValidator("param", z.object({ id: z.string() })),
     zValidator(
       "json",
       projectsInsertSchema
@@ -173,12 +180,7 @@ const app = new Hono()
           ...values,
           updatedAt: new Date(),
         })
-        .where(
-          and(
-            eq(projects.id, id),
-            eq(projects.userId, auth.token.id),
-          ),
-        )
+        .where(and(eq(projects.id, id), eq(projects.userId, auth.token.id)))
         .returning();
 
       if (data.length === 0) {
@@ -186,7 +188,7 @@ const app = new Hono()
       }
 
       return c.json({ data: data[0] });
-    },
+    }
   )
   .get(
     "/:id",
@@ -203,59 +205,14 @@ const app = new Hono()
       const data = await db
         .select()
         .from(projects)
-        .where(
-          and(
-            eq(projects.id, id),
-            eq(projects.userId, auth.token.id)
-          )
-        );
+        .where(and(eq(projects.id, id), eq(projects.userId, auth.token.id)));
 
       if (data.length === 0) {
         return c.json({ error: "Not found" }, 404);
       }
 
       return c.json({ data: data[0] });
-    },
-  )
-  .post(
-    "/",
-    verifyAuth(),
-    zValidator(
-      "json",
-      projectsInsertSchema.pick({
-        name: true,
-        json: true,
-        width: true,
-        height: true,
-      }),
-    ),
-    async (c) => {
-      const auth = c.get("authUser");
-      const { name, json, height, width } = c.req.valid("json");
-
-      if (!auth.token?.id) {
-        return c.json({ error: "Unauthorized" }, 401);
-      }
-
-      const data = await db
-        .insert(projects)
-        .values({
-          name,
-          json,
-          width,
-          height,
-          userId: auth.token.id,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning();
-
-      if (!data[0]) {
-        return c.json({ error: "Something went wrong" }, 400);
-      }
-
-      return c.json({ data: data[0] });
-    },
+    }
   );
 
 export default app;

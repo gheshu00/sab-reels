@@ -4,8 +4,13 @@ import { InferRequestType, InferResponseType } from "hono";
 
 import { client } from "@/lib/hono";
 
-type ResponseType = InferResponseType<(typeof client.api.projects)["$post"], 200>;
-type RequestType = InferRequestType<(typeof client.api.projects)["$post"]>["json"];
+type ResponseType = InferResponseType<
+  (typeof client.api.projects)["$post"],
+  200
+>;
+type RequestType = InferRequestType<
+  (typeof client.api.projects)["$post"]
+>["json"];
 
 export const useCreateProject = () => {
   const queryClient = useQueryClient();
@@ -18,11 +23,13 @@ export const useCreateProject = () => {
         throw new Error("Something went wrong");
       }
 
-      return await response.json();
+      const data = await response.json();
+      return data;
     },
     onSuccess: () => {
-      toast.success("Project created.");
+      toast.success("Project and initial page created.");
 
+      // Invalidate the projects query to reflect the new project
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
     onError: () => {

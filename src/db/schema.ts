@@ -102,9 +102,6 @@ export const projects = pgTable("project", {
     .references(() => users.id, {
       onDelete: "cascade",
     }),
-  json: text("json").notNull(),
-  height: integer("height").notNull(),
-  width: integer("width").notNull(),
   thumbnailUrl: text("thumbnailUrl"),
   isTemplate: boolean("isTemplate"),
   isPro: boolean("isPro"),
@@ -138,3 +135,23 @@ export const subscriptions = pgTable("subscription", {
   createdAt: timestamp("createdAt", { mode: "date" }).notNull(),
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull(),
 });
+
+
+export const pages = pgTable("page", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  projectId: text("projectId")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  pageNumber: integer("pageNumber").notNull(), // New field for ordering pages
+  name: text("name").notNull(),
+  json: text("json").notNull(),
+  width: integer("width").notNull(),
+  height: integer("height").notNull(),
+  createdAt: timestamp("createdAt", { mode: "date" }).notNull(),
+  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull(),
+});
+
+export const pagesInsertSchema = createInsertSchema(pages);
+
