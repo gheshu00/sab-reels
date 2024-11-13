@@ -48,39 +48,20 @@ export const Editor = ({ initialData }: EditorProps) => {
   const [activePage, setActivePage] = useState<Page | null>(null);
 
   useEffect(() => {
-    if (!activePage && initialData?.pages?.length) {
+    // Set the first page as active if it exists
+    if (initialData?.pages && initialData.pages.length > 0) {
       setActivePage(initialData.pages[0]);
     }
   }, [initialData]);
-
   const { mutate: updateProject } = useUpdateProject(initialData?.id as string);
   const { mutate: updatePage } = useUpdatePage(activePage?.id as string);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-
-  // Debounced function to update project name
-  const debouncedUpdateProjectName = useCallback(
-    debounce((name: string) => {
-      updateProject({ name });
+  const debouncedSaveProjectName = useCallback(
+    debounce((values: { name: string }) => {
+      updateProject(values);
     }, 500),
     [updateProject]
-  );
-
-  // Debounced function to update active page's json, width, or height
-  const debouncedUpdatePageData = useCallback(
-    debounce(
-      (
-        updatedData: Partial<{ json: string; width: number; height: number }>
-      ) => {
-        console.log("Updated Data:", updatedData);
-        if (activePage?.id) {
-          // Only pass the relevant fields (json, width, height) to updatePage
-          updatePage(updatedData);
-        }
-      },
-      500
-    ),
-    [updatePage] // Make sure updatePage is a dependency
   );
 
   const [activeTool, setActiveTool] = useState<ActiveTool>("select");
@@ -92,11 +73,10 @@ export const Editor = ({ initialData }: EditorProps) => {
   }, [activeTool]);
 
   const { init, editor } = useEditor({
-    defaultState: activePage?.json || "",
-    defaultWidth: activePage?.width || 1200,
-    defaultHeight: activePage?.height || 900,
+    defaultState: activePage?.json,
+    defaultWidth: activePage?.width,
+    defaultHeight: activePage?.height,
     clearSelectionCallback: onClearSelection,
-    saveCallback: debouncedUpdatePageData,
   });
 
   const onChangeActiveTool = useCallback(
@@ -120,6 +100,30 @@ export const Editor = ({ initialData }: EditorProps) => {
 
   const canvasRef = useRef(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Debounced function to update project name
+  const debouncedUpdateProjectName = useCallback(
+    debounce((name: string) => {
+      updateProject({ name });
+    }, 500),
+    [updateProject]
+  );
+
+  // Debounced function to update active page's json, width, or height
+  const debouncedUpdatePageData = useCallback(
+    debounce(
+      (
+        updatedData: Partial<{ json: string; width: number; height: number }>
+      ) => {
+        if (activePage?.id) {
+          // Only pass the relevant fields (json, width, height) to updatePage
+          updatePage(updatedData);
+        }
+      },
+      500
+    ),
+    [updatePage] // Make sure updatePage is a dependency
+  );
 
   useEffect(() => {
     if (!activePage) return;
@@ -155,7 +159,7 @@ export const Editor = ({ initialData }: EditorProps) => {
         height: activePage?.height,
       });
     }
-  }, [activePage?.height, activePage?.width, activePage?.json]);
+  }, [activePage, debouncedUpdatePageData]);
 
   return (
     <div className="h-full flex flex-col">

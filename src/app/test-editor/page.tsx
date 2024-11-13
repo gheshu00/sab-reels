@@ -1,4 +1,25 @@
-"use client";
+// Define the types for the structure of your project data
+interface Page {
+  id: string;
+  pageNumber: number;
+  name: string;
+  json: string;
+  width: number;
+  height: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ProjectData {
+  name: string;
+  id: string;
+  thumbnailUrl: string;
+  isTemplate: boolean;
+  isPro: boolean;
+  pages: Page[];
+}
+
+("use client");
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Navbar } from "@/features/editor/components/navbar";
 import { Footer } from "@/features/editor/components/footer";
@@ -9,22 +30,61 @@ import { useUpdateProject } from "@/features/projects/api/use-update-project";
 import debounce from "lodash.debounce";
 import { Toolbar } from "@/features/editor/components/toolbar";
 import { fabric } from "fabric";
+import { useUpdatePage } from "@/features/projects/api/use-update-page";
 
-const Page = () => {
-  const initialData = {
+// Simulate fetching data from an API
+const fetchInitialData = async (): Promise<ProjectData> => {
+  return {
     name: "Hello",
     id: "4072ecb4-aecd-4ae4-b61c-bea10e340222",
-    json: "{}",
-    width: 1200,
-    height: 900,
-    thumbnailUrl: "https://example.com/thumbnail.jpg", // Add a sample URL
-    isTemplate: false, // Set to true if this project is a template
-    isPro: true, // Set to true if this project is a pro version
+    thumbnailUrl: "https://example.com/thumbnail.jpg",
+    isTemplate: false,
+    isPro: true,
+    pages: [
+      {
+        id: "page1-uuid",
+        pageNumber: 1,
+        name: "Page 1",
+        json: "{}",
+        width: 1200,
+        height: 900,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "page2-uuid",
+        pageNumber: 2,
+        name: "Page 2",
+        json: "{}",
+        width: 1200,
+        height: 900,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ],
   };
+};
 
+const Page = () => {
+  const [initialData, setInitialData] = useState<ProjectData | null>(null); // Correctly type the state
+  const [activePage, setActivePage] = useState<Page | null>(null);
   const [activeTool, setActiveTool] = useState<ActiveTool>("select");
-    const canvasRef = useRef(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const { mutate: updateProject } = useUpdateProject(initialData?.id as string);
+  const { mutate: updatePage } = useUpdatePage(activePage?.id as string);
+
+  // Fetch data and set the first page as active
+  useEffect(() => {
+    const loadInitialData = async () => {
+      const data = await fetchInitialData();
+      setInitialData(data);
+      setActivePage(data.pages[0]); // Set the first page as active
+    };
+
+    loadInitialData();
+  }, []);
 
   const onClearSelection = useCallback(() => {
     if (selectionDependentTools.includes(activeTool)) {
@@ -32,68 +92,95 @@ const Page = () => {
     }
   }, [activeTool]);
 
-  const { mutate } = useUpdateProject(initialData.id);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debouncedSave = useCallback(
-    debounce((values: { json: string; height: number; width: number }) => {
-      mutate({
-        ...values,
-        name: initialData.name,
-        thumbnailUrl: initialData.thumbnailUrl,
-        isTemplate: initialData.isTemplate,
-        isPro: initialData.isPro,
-      });
-    }, 500),
-    [mutate]
-  );
-
   const { init, editor } = useEditor({
-    defaultState: initialData.json,
-    defaultWidth: initialData.width,
-    defaultHeight: initialData.height,
+    defaultState: activePage?.json,
+    defaultWidth: activePage?.width,
+    defaultHeight: activePage?.height,
     clearSelectionCallback: onClearSelection,
-    saveCallback: debouncedSave,
   });
 
+  // Debounced function to update project name
+  const debouncedUpdateProjectName = useCallback(
+    debounce((name: string) => {
+      updateProject({ name });
+    }, 500),
+    [updateProject]
+  );
+
+  // Debounced function to update active page's json, width, or height
+  const debouncedUpdatePageData = useCallback(
+    debounce(
+      (
+        updatedData: Partial<{ json: string; width: number; height: number }>
+      ) => {
+        if (activePage?.id) {
+          // Only pass the relevant fields (json, width, height) to updatePage
+          updatePage(updatedData);
+        }
+      },
+      500
+    ),
+    [updatePage] // Make sure updatePage is a dependency
+  );
+
+  
   const onChangeActiveTool = useCallback(
     (tool: ActiveTool) => {
       if (tool === "draw") {
         editor?.enableDrawingMode();
       }
-
       if (activeTool === "draw") {
         editor?.disableDrawingMode();
       }
-
       if (tool === activeTool) {
         return setActiveTool("select");
       }
-
       setActiveTool(tool);
     },
     [activeTool, editor]
   );
 
-    useEffect(() => {
-      const canvas = new fabric.Canvas(canvasRef.current, {
-        controlsAboveOverlay: true,
-        preserveObjectStacking: true,
-      });
+  // Initialize the canvas on first render and whenever activePage changes
+  useEffect(() => {
+    if (!activePage) return;
 
-      init({
-        initialCanvas: canvas,
-        initialContainer: containerRef.current!,
-      });
+    const canvas = new fabric.Canvas(canvasRef.current, {
+      controlsAboveOverlay: true,
+      preserveObjectStacking: true,
+    });
 
-      return () => {
-        canvas.dispose();
-      };
-    }, [init]);
+    init({
+      initialCanvas: canvas,
+      initialContainer: containerRef.current!,
+    });
+
+    return () => {
+      canvas.dispose();
+    };
+  }, [init, activePage]);
+
+  // Use effect to save project name changes
+  useEffect(() => {
+    if (initialData?.name) {
+      debouncedUpdateProjectName(initialData.name);
+    }
+  }, [initialData?.name, debouncedUpdateProjectName]);
+
+  // Use effect to save page changes (json, width, height)
+  useEffect(() => {
+    if (activePage) {
+      debouncedUpdatePageData({
+        json: activePage?.json,
+        width: activePage?.width,
+        height: activePage?.height,
+      });
+    }
+  }, [activePage, debouncedUpdatePageData]);
+
   return (
     <div className="h-full flex flex-col">
       <Navbar
-        id={initialData.id}
+        id={initialData?.id as string}
         editor={editor}
         activeTool={activeTool}
         onChangeActiveTool={onChangeActiveTool}

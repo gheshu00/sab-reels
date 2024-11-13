@@ -8,6 +8,7 @@ import images from "./images";
 import projects from "./projects";
 import subscriptions from "./subscriptions";
 import signup from "./signup";
+import canvas from "./canvas";
 
 import authConfig from "@/auth.config";
 
@@ -27,6 +28,7 @@ app.use("*", initAuthConfig(getAuthConfig));
 
 const routes = app
   .route("/ai", ai)
+  .route("/canvas", canvas)
   .route("/users", users)
   .route("/images", images)
   .route("/projects", projects)
