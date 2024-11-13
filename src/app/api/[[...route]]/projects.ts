@@ -202,16 +202,25 @@ const app = new Hono()
         return c.json({ error: "Unauthorized" }, 401);
       }
 
-      const data = await db
-        .select()
+      // Fetch the project data along with its associated pages
+      const projectData = await db
+        .select({
+          project: projects,
+          pages: pages,
+        })
         .from(projects)
+        .leftJoin(pages, eq(projects.id, pages.projectId))
         .where(and(eq(projects.id, id), eq(projects.userId, auth.token.id)));
 
-      if (data.length === 0) {
+      if (projectData.length === 0) {
         return c.json({ error: "Not found" }, 404);
       }
 
-      return c.json({ data: data[0] });
+      // Restructure the result to group pages under the project
+      const project = projectData[0].project;
+      const projectPages = projectData.map((row) => row.pages).filter(Boolean);
+
+      return c.json({ data: { ...project, pages: projectPages } });
     }
   );
 
