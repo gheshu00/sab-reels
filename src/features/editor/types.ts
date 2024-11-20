@@ -262,3 +262,10 @@ export interface Editor {
   getActiveStrokeDashArray: () => number[];
   selectedObjects: fabric.Object[];
 };
+
+// ... existing code ...
+export interface UseAutoResizeProps {
+  canvas: fabric.Canvas | null;
+  container: HTMLDivElement | null;
+}
+// ... existing code ...

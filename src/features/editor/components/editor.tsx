@@ -1,5 +1,5 @@
 "use client";
-
+import { InferRequestType } from "hono";
 import { fabric } from "fabric";
 import debounce from "lodash.debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -28,9 +28,23 @@ import { TemplateSidebar } from "@/features/editor/components/template-sidebar";
 import { RemoveBgSidebar } from "@/features/editor/components/remove-bg-sidebar";
 import { SettingsSidebar } from "@/features/editor/components/settings-sidebar";
 import { useUpdatePage } from "@/features/projects/api/use-update-page";
+import { RiDeleteBin2Line } from "react-icons/ri";
+import { BiAddToQueue } from "react-icons/bi";
+
+import { client } from "@/lib/hono";
+import { useCreatePage } from "@/features/projects/api/use-create-page";
+import { Loader } from "lucide-react";
+import { useDeletePage } from "@/features/projects/api/use-delete-page";
+
+type UpdatePageRequest = InferRequestType<
+  (typeof client.api.canvas)[":id"]["$patch"]
+>["json"];
 
 interface EditorProps {
   initialData: ResponseType["data"];
+  pageData?: any;
+  onPageSelect: (index: number) => void;
+  currentPageIndex: number;
 }
 
 interface Page {
@@ -44,17 +58,34 @@ interface Page {
   updatedAt: string;
 }
 
-export const Editor = ({ initialData }: EditorProps) => {
+export const Editor = ({
+  initialData,
+  pageData,
+  onPageSelect,
+  currentPageIndex,
+}: EditorProps) => {
   const [activePage, setActivePage] = useState<Page | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [pSaving, setPsaving] = useState(false);
+  const createPageMutation = useCreatePage();
+  const deletePage = useDeletePage();
 
   useEffect(() => {
-    if (!activePage && initialData?.pages?.length) {
-      setActivePage(initialData.pages[0]);
+    if (!pageData && initialData?.pages) {
+      const firstPage = initialData.pages[1]; // Access page with pageNumber 1
+      if (firstPage) {
+        setActivePage(firstPage);
+      }
     }
-  }, [initialData]);
+  }, [initialData, pageData]);
 
   const { mutate: updateProject } = useUpdateProject(initialData?.id as string);
-  const { mutate: updatePage } = useUpdatePage(activePage?.id as string);
+  const { mutate: updatePage } = useUpdatePage(
+    pageData?.id as string,
+    initialData.id as string
+  );
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
 
@@ -69,18 +100,22 @@ export const Editor = ({ initialData }: EditorProps) => {
   // Debounced function to update active page's json, width, or height
   const debouncedUpdatePageData = useCallback(
     debounce(
-      (
-        updatedData: Partial<{ json: string; width: number; height: number }>
-      ) => {
-        console.log("Updated Data:", updatedData);
-        if (activePage?.id) {
-          // Only pass the relevant fields (json, width, height) to updatePage
-          updatePage(updatedData);
+      async (updatedData: {
+        json: string;
+        width?: number;
+        height?: number;
+      }) => {
+        setPsaving(true);
+        if (pageData?.id) {
+          const apiData: UpdatePageRequest = updatedData;
+          updatePage(apiData);
         }
+
+        setPsaving(false);
       },
       500
     ),
-    [updatePage] // Make sure updatePage is a dependency
+    [updatePage, pageData?.id]
   );
 
   const [activeTool, setActiveTool] = useState<ActiveTool>("select");
@@ -91,12 +126,21 @@ export const Editor = ({ initialData }: EditorProps) => {
     }
   }, [activeTool]);
 
-  const { init, editor } = useEditor({
-    defaultState: activePage?.json || "",
-    defaultWidth: activePage?.width || 1200,
-    defaultHeight: activePage?.height || 900,
+  const { init, editor, updateCanvas } = useEditor({
+    defaultState: pageData?.json,
+    defaultWidth: pageData?.width,
+    defaultHeight: pageData?.height,
     clearSelectionCallback: onClearSelection,
-    saveCallback: debouncedUpdatePageData,
+    saveCallback: (canvas) => {
+      if (isInitialized && canvas) {
+        // This triggers the mutation state that the Navbar is watching
+        debouncedUpdatePageData({
+          json: JSON.stringify(canvas.json),
+          width: canvas.width || pageData?.width,
+          height: canvas.height || pageData?.height,
+        });
+      }
+    },
   });
 
   const onChangeActiveTool = useCallback(
@@ -120,14 +164,24 @@ export const Editor = ({ initialData }: EditorProps) => {
 
   const canvasRef = useRef(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const currentCanvas = useRef<fabric.Canvas | null>(null);
 
   useEffect(() => {
-    if (!activePage) return;
+    if (!pageData) return;
+
+    // Clean up existing canvas
+    if (currentCanvas.current) {
+      currentCanvas.current.dispose();
+      currentCanvas.current = null;
+      setIsInitialized(false);
+    }
 
     const canvas = new fabric.Canvas(canvasRef.current, {
       controlsAboveOverlay: true,
       preserveObjectStacking: true,
     });
+
+    currentCanvas.current = canvas;
 
     init({
       initialCanvas: canvas,
@@ -135,9 +189,12 @@ export const Editor = ({ initialData }: EditorProps) => {
     });
 
     return () => {
-      canvas.dispose();
+      if (currentCanvas.current) {
+        currentCanvas.current.dispose();
+        currentCanvas.current = null;
+      }
     };
-  }, [init, activePage]);
+  }, [init, pageData]);
 
   // Use effect to save project name changes
   useEffect(() => {
@@ -146,16 +203,98 @@ export const Editor = ({ initialData }: EditorProps) => {
     }
   }, [initialData?.name, debouncedUpdateProjectName]);
 
-  // Use effect to save page changes (json, width, height)
-  useEffect(() => {
-    if (activePage) {
-      debouncedUpdatePageData({
-        json: activePage?.json,
-        width: activePage?.width,
-        height: activePage?.height,
+  //////////////////////////////////////////////
+
+  const handleCreatePage = async () => {
+    if (isCreating) return; // Prevent duplicate requests
+    setIsCreating(true);
+
+    const nextPageNumber = initialData?.pages.length + 1 || 1; // Calculate next page number
+    const defaultJson = {
+      json: '{"version":"5.3.0","objects":[{"type":"rect","version":"5.3.0","originX":"left","originY":"top","left":0,"top":0,"width":1200,"height":900,"fill":"white","stroke":null,"strokeWidth":1,"strokeDashArray":null,"strokeLineCap":"butt","strokeDashOffset":0,"strokeLineJoin":"miter","strokeUniform":false,"strokeMiterLimit":4,"scaleX":1,"scaleY":1,"angle":0,"flipX":false,"flipY":false,"opacity":1,"visible":true,"backgroundColor":"","fillRule":"nonzero","paintFirst":"fill","globalCompositeOperation":"source-over","skewX":0,"skewY":0,"rx":0,"ry":0,"name":"clip","selectable":false,"hasControls":false}],"clipPath":{"type":"rect","version":"5.3.0","originX":"left","originY":"top","left":0,"top":0,"width":1200,"height":900,"fill":"white","stroke":null,"strokeWidth":1,"selectable":false,"hasControls":false}}',
+    };
+
+    try {
+      await createPageMutation.mutateAsync({
+        projectId: initialData.id,
+        pageNumber: nextPageNumber,
+        name: `Page ${nextPageNumber}`, // Default name
+        json: defaultJson.json, // Default JSON structure
+        width: 1200, // Default width
+        height: 900, // Default height
       });
+    } catch (error) {
+      console.error("Failed to create page:", error);
+    } finally {
+      setIsCreating(false);
     }
-  }, [activePage?.height, activePage?.width, activePage?.json]);
+  };
+
+  const handleDeletePage = async () => {
+    if (isDeleting) return; // Prevent duplicate requests
+    setIsDeleting(true);
+
+    try {
+      // Perform the delete operation
+      await deletePage.mutateAsync({ id: pageData.id });
+    } catch (error) {
+      console.error("Failed to delete page:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  useEffect(() => {
+    // Cleanup function
+    const cleanupCanvas = () => {
+      if (currentCanvas.current) {
+        currentCanvas.current.dispose();
+        currentCanvas.current = null;
+        setIsInitialized(false);
+      }
+    };
+
+    // Initialize new canvas
+    const initializeNewCanvas = () => {
+      if (!pageData) return;
+
+      const canvas = new fabric.Canvas(canvasRef.current, {
+        controlsAboveOverlay: true,
+        preserveObjectStacking: true,
+      });
+
+      currentCanvas.current = canvas;
+
+      init({
+        initialCanvas: canvas,
+        initialContainer: containerRef.current!,
+      });
+
+      // Load the JSON data for the new page
+      if (pageData.json) {
+        try {
+          const jsonData = JSON.parse(pageData.json);
+          canvas.loadFromJSON(jsonData, () => {
+            canvas.renderAll();
+            setIsInitialized(true);
+          });
+        } catch (error) {
+          console.error("Error loading canvas data:", error);
+        }
+      }
+    };
+
+    // Run cleanup and initialization
+    cleanupCanvas();
+    initializeNewCanvas();
+
+    // Cleanup on unmount or before next effect run
+    return () => {
+      cleanupCanvas();
+    };
+  }, [pageData, currentPageIndex, init]);
+
+  //////////////////////////////////////////////
 
   return (
     <div className="h-full flex flex-col">
@@ -164,6 +303,7 @@ export const Editor = ({ initialData }: EditorProps) => {
         editor={editor}
         activeTool={activeTool}
         onChangeActiveTool={onChangeActiveTool}
+        pSaving={pSaving}
       />
       <div className="absolute h-[calc(100%-68px)] w-full top-[68px] flex">
         <Sidebar
@@ -253,8 +393,73 @@ export const Editor = ({ initialData }: EditorProps) => {
           >
             <canvas ref={canvasRef} />
           </div>
+          <div className="absolute top-2 right-2 z-50 flex gap-2 items-center">
+            <button
+              onClick={handleDeletePage}
+              disabled={isDeleting || initialData.pages.length <= 1}
+              className="h-[50px] text-2xl flex items-center justify-center px-2 py- bg-white/0 hover:text-red-500 animate text-red-300"
+            >
+              {isDeleting ? (
+                <Loader className="size-4 animate-spin text-muted-foreground" />
+              ) : (
+                <RiDeleteBin2Line />
+              )}
+            </button>
+            <button
+              onClick={handleCreatePage}
+              disabled={isCreating}
+              className="h-[50px] text-2xl flex items-center justify-center px-2 py-2 bg-white/0 hover:text-blue-500 animate"
+            >
+              {isCreating ? (
+                <Loader className="size-4 animate-spin text-muted-foreground" />
+              ) : (
+                <BiAddToQueue />
+              )}
+            </button>
+          </div>
           <Footer editor={editor} />
         </main>
+
+        <div className="h-full overflow-y-scroll">
+          <div className="w-[8rem] bg-white border-l flex flex-col items-center gap-4 py-4">
+            {Array.from({ length: initialData.pages.length }, (_, index: any) => (
+              <div
+                key={index + 1}
+                
+                className="relative w-[5rem] h-[3.5rem] flex items-center justify-center group cursor-pointer"
+                onClick={() => {
+                  onPageSelect(index);
+                  console.log({ index, pageNum: pageData.pageNumber });
+                }}
+              >
+                {/* Content container */}
+                <div
+                  className={`
+                    bg-white border-2 w-full h-full rounded-md transition-colors duration-200
+                    ${
+                      index === pageData?.pageNumber - 1
+                        ? "border-blue-500"
+                        : "group-hover:border-blue-500"
+                    }
+                  `}
+                ></div>
+                {/* Overlay with the number */}
+                <h3
+                  className={`
+                    absolute font-bold text-lg pointer-events-none
+                    ${
+                      index === pageData.pageNumber - 1
+                        ? "text-blue-500"
+                        : "text-neutral-400 group-hover:text-blue-500"
+                    }
+                  `}
+                >
+                  {index + 1}
+                </h3>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

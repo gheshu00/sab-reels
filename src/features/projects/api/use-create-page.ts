@@ -4,20 +4,17 @@ import { InferRequestType, InferResponseType } from "hono";
 
 import { client } from "@/lib/hono";
 
-type ResponseType = InferResponseType<
-  (typeof client.api.projects)["$post"],
-  200
->;
+type ResponseType = InferResponseType<(typeof client.api.canvas)["$post"], 201>;
 type RequestType = InferRequestType<
-  (typeof client.api.projects)["$post"]
+  (typeof client.api.canvas)["$post"]
 >["json"];
 
-export const useCreateProject = () => {
+export const useCreatePage = () => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation<ResponseType, Error, RequestType>({
     mutationFn: async (json) => {
-      const response = await client.api.projects.$post({ json });
+      const response = await client.api.canvas.$post({ json });
 
       if (!response.ok) {
         throw new Error("Something went wrong");
@@ -27,18 +24,17 @@ export const useCreateProject = () => {
       return data;
     },
     onSuccess: () => {
-      toast.success("Project and initial page created.");
+      toast.success("Page created successfully.");
 
-      // Invalidate the projects query to reflect the new project
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      // Invalidate the project query to refetch the updated project data
+      queryClient.invalidateQueries({ queryKey: ["project"] });
     },
     onError: () => {
       toast.error(
-        "Failed to create project. The session token may have expired, logout and login again, and everything will work fine."
+        "Failed to create page. Please try again or contact support."
       );
     },
   });
 
   return mutation;
 };
-

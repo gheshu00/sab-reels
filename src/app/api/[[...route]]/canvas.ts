@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Hono } from "hono";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gt, sql } from "drizzle-orm";
 import { verifyAuth } from "@hono/auth-js";
 import { zValidator } from "@hono/zod-validator";
 
@@ -117,19 +117,37 @@ const app = new Hono()
         return c.json({ error: "Unauthorized" }, 401);
       }
 
-      // Check if user owns the page through project ownership
-      const pageExists = await db
-        .select()
+      // Check if the page exists and belongs to the user through the associated project
+      const pageData = await db
+        .select({
+          page: pages,
+          project: projects,
+        })
         .from(pages)
         .leftJoin(projects, eq(pages.projectId, projects.id))
         .where(and(eq(pages.id, id), eq(projects.userId, auth.token.id)));
 
-      if (pageExists.length === 0) {
+      if (pageData.length === 0) {
         return c.json({ error: "Page not found or unauthorized" }, 404);
       }
 
-      // Delete the page
+      const pageToDelete = pageData[0].page;
+
+      // Delete the specified page
       await db.delete(pages).where(eq(pages.id, id));
+
+      // Update the pageNumber of subsequent pages
+      await db
+        .update(pages)
+        .set({
+          pageNumber: sql`${pages.pageNumber} - 1`, // Use raw SQL to decrement pageNumber
+        })
+        .where(
+          and(
+            eq(pages.projectId, pageToDelete.projectId),
+            gt(pages.pageNumber, pageToDelete.pageNumber) // Only update pages with a higher pageNumber
+          )
+        );
 
       return c.json({ data: { id } });
     }

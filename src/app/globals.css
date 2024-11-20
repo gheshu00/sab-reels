@@ -78,6 +78,9 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+  .animate {
+    @apply ease-in-out duration-300 transition-all
+  }
 }
 
 .circle-picker {

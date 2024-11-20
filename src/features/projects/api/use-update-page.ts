@@ -12,7 +12,7 @@ type PageRequestType = InferRequestType<
   (typeof client.api.canvas)[":id"]["$patch"]
 >["json"];
 
-export const useUpdatePage = (id: string) => {
+export const useUpdatePage = (id: string, projectId: string) => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation<PageResponseType, Error, PageRequestType>({
@@ -30,8 +30,11 @@ export const useUpdatePage = (id: string) => {
       return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pages"] });
-      queryClient.invalidateQueries({ queryKey: ["page", { id }] });
+      // queryClient.invalidateQueries({ queryKey: ["pages"] });
+      // queryClient.invalidateQueries({ queryKey: ["page", { id }] });
+      queryClient.invalidateQueries({
+        queryKey: ["project", { id: projectId }],
+      });
     },
     onError: () => {
       toast.error("Failed to update page");

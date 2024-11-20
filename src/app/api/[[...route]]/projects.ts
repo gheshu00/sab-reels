@@ -66,8 +66,13 @@ const app = new Hono()
         name: true,
         isTemplate: true,
         isPro: true,
-        thumbnailUrl: true, // Updated fields for new projects
-      })
+        thumbnailUrl: true,
+      }) as z.ZodObject<{
+        name: z.ZodString;
+        isTemplate: z.ZodBoolean;
+        isPro: z.ZodBoolean;
+        thumbnailUrl: z.ZodString;
+      }>
     ),
     async (c) => {
       const auth = c.get("authUser");
@@ -216,9 +221,12 @@ const app = new Hono()
         return c.json({ error: "Not found" }, 404);
       }
 
-      // Restructure the result to group pages under the project
+      // Restructure the result to group and sort pages under the project
       const project = projectData[0].project;
-      const projectPages = projectData.map((row) => row.pages).filter(Boolean);
+      const projectPages = projectData
+        .map((row) => row.pages)
+        .filter((page): page is NonNullable<typeof page> => page !== null)
+        .sort((a, b) => a.pageNumber - b.pageNumber); // Sort by pageNumber in ascending order
 
       return c.json({ data: { ...project, pages: projectPages } });
     }
