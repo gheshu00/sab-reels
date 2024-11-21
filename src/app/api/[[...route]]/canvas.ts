@@ -61,6 +61,31 @@ const app = new Hono()
       return c.json({ data: pageData[0] });
     }
   )
+  .get(
+    "/:id",
+    verifyAuth(),
+    zValidator("param", z.object({ id: z.string() })),
+    async (c) => {
+      const auth = c.get("authUser");
+      const { id } = c.req.valid("param");
+
+      if (!auth.token?.id) {
+        return c.json({ error: "Unauthorized" }, 401);
+      }
+
+      const pageData = await db
+        .select()
+        .from(pages)
+        .leftJoin(projects, eq(pages.projectId, projects.id))
+        .where(and(eq(pages.id, id), eq(projects.userId, auth.token.id)));
+
+      if (pageData.length === 0) {
+        return c.json({ error: "Page not found or unauthorized" }, 404);
+      }
+
+      return c.json({ data: pageData[0] });
+    }
+  )
   .patch(
     "/:id",
     verifyAuth(),

@@ -32,9 +32,9 @@ export const useUpdatePage = (id: string, projectId: string) => {
     onSuccess: () => {
       // queryClient.invalidateQueries({ queryKey: ["pages"] });
       // queryClient.invalidateQueries({ queryKey: ["page", { id }] });
-      queryClient.invalidateQueries({
-        queryKey: ["project", { id: projectId }],
-      });
+      // queryClient.invalidateQueries({
+      //   queryKey: ["project", { id: projectId }],
+      // });
     },
     onError: () => {
       toast.error("Failed to update page");

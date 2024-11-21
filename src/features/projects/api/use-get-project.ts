@@ -24,7 +24,7 @@ export const useGetProject = (id: string) => {
       }
 
       const { data } = await response.json();
-      // console.log(data);
+      console.log(data);
       return data;
     },
   });

@@ -35,6 +35,8 @@ interface NavbarProps {
   activeTool: ActiveTool;
   onChangeActiveTool: (tool: ActiveTool) => void;
   pSaving: boolean;
+  isPageLoading: any;
+  isPendingSave: boolean;
 }
 
 export const Navbar = ({
@@ -43,6 +45,8 @@ export const Navbar = ({
   activeTool,
   onChangeActiveTool,
   pSaving,
+  isPageLoading,
+  isPendingSave,
 }: NavbarProps) => {
   const data = useMutationState({
     filters: {
@@ -148,6 +152,27 @@ export const Navbar = ({
             <div className="text-xs text-muted-foreground">Saved</div>
           </div>
         )} */}
+
+        {isPageLoading && !isPendingSave && (
+          <div className="flex items-center gap-x-2">
+            <Loader className="size-4 animate-spin text-muted-foreground" />
+            <div className="text-xs text-muted-foreground">Loading Page...</div>
+          </div>
+        )}
+
+        {!isPageLoading && !isPendingSave && (
+          <div className="flex items-center gap-x-2">
+            <div className="text-xs text-muted-foreground">Page Loaded</div>
+          </div>
+        )}
+
+        {isPendingSave && (
+          <div className="flex items-center gap-x-2">
+            <Loader className="size-4 animate-spin text-muted-foreground" />
+            <div className="text-xs text-muted-foreground">Saving...</div>
+          </div>
+        )}
+
         <div className="ml-auto flex items-center gap-x-4">
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>

@@ -787,5 +787,15 @@ const { save, canRedo, canUndo, undo, redo, canvasHistory, setHistoryIndex } =
     [editor]
   );
 
-  return { init, editor, updateCanvas };
+  let previousState = editor?.canvas.toJSON();
+
+  const checkForChanges = () => {
+    const currentState = editor?.canvas.toJSON();
+    if (JSON.stringify(previousState) !== JSON.stringify(currentState)) {
+      console.log("Canvas state changed");
+      previousState = currentState; // Update the stored state
+    }
+  };
+
+  return { init, editor, updateCanvas, checkForChanges };
 };

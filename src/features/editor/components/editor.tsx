@@ -45,6 +45,8 @@ interface EditorProps {
   pageData?: any;
   onPageSelect: (index: number) => void;
   currentPageIndex: number;
+  isPageLoading: any;
+  isPageError: any;
 }
 
 interface Page {
@@ -63,6 +65,8 @@ export const Editor = ({
   pageData,
   onPageSelect,
   currentPageIndex,
+  isPageError,
+  isPageLoading,
 }: EditorProps) => {
   const [activePage, setActivePage] = useState<Page | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -82,7 +86,7 @@ export const Editor = ({
   }, [initialData, pageData]);
 
   const { mutate: updateProject } = useUpdateProject(initialData?.id as string);
-  const { mutate: updatePage } = useUpdatePage(
+  const { mutate: updatePage, isPending } = useUpdatePage(
     pageData?.id as string,
     initialData.id as string
   );
@@ -166,37 +170,38 @@ export const Editor = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const currentCanvas = useRef<fabric.Canvas | null>(null);
 
-  useEffect(() => {
-    if (!pageData) return;
+  // useEffect(() => {
+  //   if (!pageData) return;
 
-    // Clean up existing canvas
-    if (currentCanvas.current) {
-      currentCanvas.current.dispose();
-      currentCanvas.current = null;
-      setIsInitialized(false);
-    }
+  //   // Clean up existing canvas
+  //   if (currentCanvas.current) {
+  //     currentCanvas.current.dispose();
+  //     currentCanvas.current = null;
+  //     setIsInitialized(false);
+  //   }
 
-    const canvas = new fabric.Canvas(canvasRef.current, {
-      controlsAboveOverlay: true,
-      preserveObjectStacking: true,
-    });
+  //   const canvas = new fabric.Canvas(canvasRef.current, {
+  //     controlsAboveOverlay: true,
+  //     preserveObjectStacking: true,
+  //   });
 
-    currentCanvas.current = canvas;
+  //   currentCanvas.current = canvas;
 
-    init({
-      initialCanvas: canvas,
-      initialContainer: containerRef.current!,
-    });
+  //   init({
+  //     initialCanvas: canvas,
+  //     initialContainer: containerRef.current!,
+  //   });
 
-    return () => {
-      if (currentCanvas.current) {
-        currentCanvas.current.dispose();
-        currentCanvas.current = null;
-      }
-    };
-  }, [init, pageData]);
+  //   return () => {
+  //     if (currentCanvas.current) {
+  //       currentCanvas.current.dispose();
+  //       currentCanvas.current = null;
+  //     }
+  //   };
+  // }, [init, pageData]);
 
   // Use effect to save project name changes
+
   useEffect(() => {
     if (initialData?.name) {
       debouncedUpdateProjectName(initialData.name);
@@ -254,9 +259,9 @@ export const Editor = ({
       }
     };
 
-    // Initialize new canvas
-    const initializeNewCanvas = () => {
-      if (!pageData) return;
+    // Initialize canvas
+    const initializeCanvas = () => {
+      if (!pageData?.json) return; // Prevent initialization if no JSON
 
       const canvas = new fabric.Canvas(canvasRef.current, {
         controlsAboveOverlay: true,
@@ -270,29 +275,27 @@ export const Editor = ({
         initialContainer: containerRef.current!,
       });
 
-      // Load the JSON data for the new page
-      if (pageData.json) {
-        try {
-          const jsonData = JSON.parse(pageData.json);
-          canvas.loadFromJSON(jsonData, () => {
-            canvas.renderAll();
-            setIsInitialized(true);
-          });
-        } catch (error) {
-          console.error("Error loading canvas data:", error);
-        }
+      try {
+        const jsonData = JSON.parse(pageData.json);
+        canvas.loadFromJSON(jsonData, () => {
+          canvas.renderAll();
+          setIsInitialized(true);
+        });
+      } catch (error) {
+        console.error("Error loading canvas data:", error);
       }
     };
 
-    // Run cleanup and initialization
-    cleanupCanvas();
-    initializeNewCanvas();
+    // Manage loading state and cleanup
+    if (!isPageLoading) {
+      cleanupCanvas();
+      initializeCanvas();
+    }
 
-    // Cleanup on unmount or before next effect run
     return () => {
       cleanupCanvas();
     };
-  }, [pageData, currentPageIndex, init]);
+  }, [isPageLoading, pageData?.json, init]);
 
   //////////////////////////////////////////////
 
@@ -304,6 +307,8 @@ export const Editor = ({
         activeTool={activeTool}
         onChangeActiveTool={onChangeActiveTool}
         pSaving={pSaving}
+        isPageLoading={isPageLoading}
+        isPendingSave={isPending}
       />
       <div className="absolute h-[calc(100%-68px)] w-full top-[68px] flex">
         <Sidebar
@@ -387,6 +392,22 @@ export const Editor = ({
             onChangeActiveTool={onChangeActiveTool}
             key={JSON.stringify(editor?.canvas.getActiveObject())}
           />
+          {/* <div
+            className="flex-1 h-[calc(100%-124px)] bg-muted"
+            ref={containerRef}
+          >
+            {isPageLoading ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <Loader className="size-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              // Only render the canvas container if the page is initialized
+              <div className="canvas-container">
+                <canvas ref={canvasRef} />
+              </div>
+            )}
+          </div> */}
+
           <div
             className="flex-1 h-[calc(100%-124px)] bg-muted"
             ref={containerRef}
@@ -421,43 +442,54 @@ export const Editor = ({
         </main>
 
         <div className="h-full overflow-y-scroll">
-          <div className="w-[8rem] bg-white border-l flex flex-col items-center gap-4 py-4">
-            {Array.from({ length: initialData.pages.length }, (_, index: any) => (
-              <div
-                key={index + 1}
-                
-                className="relative w-[5rem] h-[3.5rem] flex items-center justify-center group cursor-pointer"
-                onClick={() => {
-                  onPageSelect(index);
-                  console.log({ index, pageNum: pageData.pageNumber });
-                }}
-              >
-                {/* Content container */}
+          <div
+            className="w-[8rem] bg-white border-l flex flex-col items-center gap-4 py-4"
+            style={{
+              pointerEvents: isPending ? "none" : "auto",
+              opacity: isPending ? 0.5 : 1, // Optional: make it visually appear disabled
+            }}
+          >
+            {Array.from(
+              { length: initialData.pages.length },
+              (_, index: any) => (
                 <div
-                  className={`
-                    bg-white border-2 w-full h-full rounded-md transition-colors duration-200
-                    ${
-                      index === pageData?.pageNumber - 1
-                        ? "border-blue-500"
-                        : "group-hover:border-blue-500"
+                  key={index + 1}
+                  className="relative w-[5rem] h-[3.5rem] flex items-center justify-center group cursor-pointer"
+                  onClick={() => {
+                    if (!isPending) {
+                      // Prevent click logic when isPendingSave is true
+                      onPageSelect(index);
+                      console.log({ index, pageNum: pageData.pageNumber });
                     }
-                  `}
-                ></div>
-                {/* Overlay with the number */}
-                <h3
-                  className={`
-                    absolute font-bold text-lg pointer-events-none
-                    ${
-                      index === pageData.pageNumber - 1
-                        ? "text-blue-500"
-                        : "text-neutral-400 group-hover:text-blue-500"
-                    }
-                  `}
+                  }}
                 >
-                  {index + 1}
-                </h3>
-              </div>
-            ))}
+                  {/* Content container */}
+                  <div
+                    className={`
+            bg-white border-2 w-full h-full rounded-md transition-colors duration-200
+            ${
+              index === pageData?.pageNumber - 1
+                ? "border-blue-500"
+                : "group-hover:border-blue-500"
+            }
+          `}
+                  ></div>
+                  {/* Overlay with the number */}
+                  <h3
+                    className={`
+            absolute font-bold text-lg pointer-events-none
+            ${
+              index === pageData?.pageNumber - 1
+                ? "text-blue-500"
+                : "text-neutral-400 group-hover:text-blue-500"
+            }
+          `}
+                  >
+                    {index + 1}
+                  </h3>
+                </div>
+              )
+            )}
           </div>
         </div>
       </div>
