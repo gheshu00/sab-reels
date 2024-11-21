@@ -117,7 +117,7 @@ export const ProjectsSection = () => {
                     onClick={() => router.push(`/editor/${project.id}`)}
                     className="hidden md:block cursor-pointer"
                   >
-                    {project.width} x {project.height} px
+                    {/* {project.width} x {project.height} px */}
                   </div>
                   <div
                     onClick={() => router.push(`/editor/${project.id}`)}
