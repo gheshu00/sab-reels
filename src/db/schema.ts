@@ -7,9 +7,9 @@ import {
   text,
   primaryKey,
   integer,
-} from "drizzle-orm/pg-core"
-import type { AdapterAccountType } from "next-auth/adapters"
- 
+} from "drizzle-orm/pg-core";
+import type { AdapterAccountType } from "next-auth/adapters";
+
 export const users = pgTable("user", {
   id: text("id")
     .primaryKey()
@@ -18,7 +18,7 @@ export const users = pgTable("user", {
   email: text("email").notNull(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
-  password: text("password"), 
+  password: text("password"),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -47,16 +47,16 @@ export const accounts = pgTable(
       columns: [account.provider, account.providerAccountId],
     }),
   })
-)
- 
+);
+
 export const sessions = pgTable("session", {
   sessionToken: text("sessionToken").primaryKey(),
   userId: text("userId")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   expires: timestamp("expires", { mode: "date" }).notNull(),
-})
- 
+});
+
 export const verificationTokens = pgTable(
   "verificationToken",
   {
@@ -69,8 +69,8 @@ export const verificationTokens = pgTable(
       columns: [verificationToken.identifier, verificationToken.token],
     }),
   })
-)
- 
+);
+
 export const authenticators = pgTable(
   "authenticator",
   {
@@ -90,7 +90,7 @@ export const authenticators = pgTable(
       columns: [authenticator.userId, authenticator.credentialID],
     }),
   })
-)
+);
 
 export const projects = pgTable("project", {
   id: text("id")
@@ -116,7 +116,7 @@ export const projectsRelations = relations(projects, ({ one }) => ({
   }),
 }));
 
-export const projectsInsertSchema = createInsertSchema(projects);
+export const projectsInsertSchema = createInsertSchema(projects as any);
 
 export const subscriptions = pgTable("subscription", {
   id: text("id")
@@ -125,7 +125,7 @@ export const subscriptions = pgTable("subscription", {
   userId: text("userId")
     .notNull()
     .references(() => users.id, {
-      onDelete: "cascade"
+      onDelete: "cascade",
     }),
   subscriptionId: text("subscriptionId").notNull(),
   customerId: text("customerId").notNull(),
@@ -135,7 +135,6 @@ export const subscriptions = pgTable("subscription", {
   createdAt: timestamp("createdAt", { mode: "date" }).notNull(),
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull(),
 });
-
 
 export const pages = pgTable("page", {
   id: text("id")
@@ -153,5 +152,5 @@ export const pages = pgTable("page", {
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull(),
 });
 
-export const pagesInsertSchema = createInsertSchema(pages);
-
+// Ensure the type of pages is compatible with createInsertSchema
+export const pagesInsertSchema = createInsertSchema(pages as any);

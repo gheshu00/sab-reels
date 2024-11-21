@@ -43,18 +43,18 @@ export const TemplateSidebar = ({
     onChangeActiveTool("select");
   };
 
-  const onClick = async (template: ResponseType["data"][0]) => {
-    if (template.isPro && shouldBlock) {
-      triggerPaywall();
-      return;
-    }
+  // const onClick = async (template: ResponseType["data"][0]) => {
+  //   if (template.isPro && shouldBlock) {
+  //     triggerPaywall();
+  //     return;
+  //   }
 
-    const ok = await confirm();
+  //   const ok = await confirm();
 
-    if (ok) {
-      editor?.loadJson(template.json);
-    }
-  };
+  //   if (ok) {
+  //     editor?.loadJson(template.json);
+  //   }
+  // };
 
   return (
     <aside
@@ -81,14 +81,14 @@ export const TemplateSidebar = ({
           </p>
         </div>
       )}
-      <ScrollArea>
+      {/* <ScrollArea>
         <div className="p-4">
           <div className="grid grid-cols-2 gap-4">
             {data && data.map((template) => {
               return (
                 <button
                   style={{ 
-                    aspectRatio: `${template.width}/${template.height}`
+                    aspectRatio: `${template?.width}/${template?.height}`
                   }}
                   onClick={() => onClick(template)}
                   key={template.id}
@@ -115,7 +115,7 @@ export const TemplateSidebar = ({
             })}
           </div>
         </div>
-      </ScrollArea>
+      </ScrollArea> */}
       <ToolSidebarClose onClick={onClose} />
     </aside>
   );

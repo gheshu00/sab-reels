@@ -15,7 +15,7 @@ import {
 
 import { useGetProjects } from "@/features/projects/api/use-get-projects";
 import { useDeleteProject } from "@/features/projects/api/use-delete-project";
-import { useDuplicateProject } from "@/features/projects/api/use-duplicate-project";
+// import { useDuplicateProject } from "@/features/projects/api/use-duplicate-project";
 
 import {
   DropdownMenuContent,
@@ -33,13 +33,13 @@ export const ProjectsSection = () => {
     "Are you sure?",
     "You are about to delete this project."
   );
-  const duplicateMutation = useDuplicateProject();
+  // const duplicateMutation = useDuplicateProject();
   const removeMutation = useDeleteProject();
   const router = useRouter();
 
-  const onCopy = (id: string) => {
-    duplicateMutation.mutate({ id });
-  };
+  // const onCopy = (id: string) => {
+  //   duplicateMutation.mutate({ id });
+  // };
 
   const onDelete = async (id: string) => {
     const ok = await confirm();
@@ -141,14 +141,14 @@ export const ProjectsSection = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-60">
-                      <DropdownMenuItem
+                      {/* <DropdownMenuItem
                         className="h-10 cursor-pointer"
                         disabled={duplicateMutation.isPending}
                         onClick={() => onCopy(project.id)}
                       >
                         <CopyIcon className="size-4 mr-2" />
                         Make a copy
-                      </DropdownMenuItem>
+                      </DropdownMenuItem> */}
                       <DropdownMenuItem
                         className="h-10 cursor-pointer"
                         disabled={removeMutation.isPending}
