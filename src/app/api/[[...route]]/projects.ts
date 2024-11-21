@@ -102,6 +102,10 @@ const app = new Hono()
         return c.json({ error: "Project creation failed" }, 400);
       }
 
+      const defaultJson = {
+        json: '{"version":"5.3.0","objects":[{"type":"rect","version":"5.3.0","originX":"left","originY":"top","left":0,"top":0,"width":1200,"height":900,"fill":"white","stroke":null,"strokeWidth":1,"strokeDashArray":null,"strokeLineCap":"butt","strokeDashOffset":0,"strokeLineJoin":"miter","strokeUniform":false,"strokeMiterLimit":4,"scaleX":1,"scaleY":1,"angle":0,"flipX":false,"flipY":false,"opacity":1,"visible":true,"backgroundColor":"","fillRule":"nonzero","paintFirst":"fill","globalCompositeOperation":"source-over","skewX":0,"skewY":0,"rx":0,"ry":0,"name":"clip","selectable":false,"hasControls":false}],"clipPath":{"type":"rect","version":"5.3.0","originX":"left","originY":"top","left":0,"top":0,"width":1200,"height":900,"fill":"white","stroke":null,"strokeWidth":1,"selectable":false,"hasControls":false}}',
+      };
+
       // Insert the initial page for the new project
       const pageData = await db
         .insert(pages)
@@ -109,7 +113,7 @@ const app = new Hono()
           projectId: newProject.id,
           pageNumber: 1, // Start with the first page
           name: "Page 1", // Default name for initial page
-          json: "{}", // Initial empty JSON data for the page
+          json: defaultJson.json, // Initial empty JSON data for the page
           width: 800, // Default width
           height: 600, // Default height
           createdAt: new Date(),
