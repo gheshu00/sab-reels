@@ -4,7 +4,7 @@ export const useGetUserMedia = () => {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["userMedia"],
     queryFn: async () => {
-      const response = await fetch("/media/user");
+      const response = await fetch("/api/media/user");
 
       if (!response.ok) {
         const errorDetails = await response.json();
@@ -12,6 +12,7 @@ export const useGetUserMedia = () => {
       }
 
       const { data } = await response.json();
+      console.log(data);
       return data;
     },
   });

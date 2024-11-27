@@ -158,12 +158,12 @@ export const ImageSidebar = ({
               key={image.id}
               className="relative w-full h-[100px] group hover:opacity-75 transition bg-muted rounded-sm overflow-hidden border"
             >
-              {/* <img
-                src={image.urls.small || image.urls.thumb}
-                alt={image.alt_description || "Image"}
+              <img
+                src={image.url ||""}
+                alt={image.name || "Image"}
                 className="object-cover"
                 loading="lazy"
-              /> */}
+              />
             </button>
           ))}
         </div>

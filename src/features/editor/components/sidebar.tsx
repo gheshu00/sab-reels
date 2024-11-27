@@ -55,12 +55,12 @@ export const Sidebar = ({
           isActive={activeTool === "draw"}
           onClick={() => onChangeActiveTool("draw")}
         />
-        <SidebarItem
+        {/* <SidebarItem
           icon={Sparkles}
           label="AI"
           isActive={activeTool === "ai"}
           onClick={() => onChangeActiveTool("ai")}
-        />
+        /> */}
         <SidebarItem
           icon={Settings}
           label="Settings"

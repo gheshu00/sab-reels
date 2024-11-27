@@ -42,11 +42,10 @@ export const Banner = () => {
       </div>
       <div className="flex flex-col gap-y-2">
         <h1 className="text-xl md:text-3xl font-semibold">
-          Visualize your ideas with The Canvas
+          Create your Reels with ScoutaBase
         </h1>
         <p className="text-xs md:text-sm mb-2">
-          Turn inspiration into design in no time. Simply upload an image and
-          let AI do the rest.
+         Access our libraries and tools to create your Media Reels
         </p>
         <Button
           disabled={mutation.isPending}

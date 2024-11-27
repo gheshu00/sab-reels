@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard, Crown, Home, MessageCircleQuestion } from "lucide-react";
+import { CreditCard, Crown, Home, MessageCircleQuestion, LayoutDashboard } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import { usePaywall } from "@/features/subscriptions/hooks/use-paywall";
@@ -9,8 +9,11 @@ import { useBilling } from "@/features/subscriptions/api/use-billing";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { MdOutlineSpaceDashboard } from "react-icons/md";
 
 import { SidebarItem } from "./sidebar-item";
+import Link from "next/link";
+import { DashboardLink } from "../../../../constant";
 
 export const SidebarRoutes = () => {
   const mutation = useCheckout();
@@ -57,11 +60,15 @@ export const SidebarRoutes = () => {
       </div>
       <ul className="flex flex-col gap-y-1 px-3">
         <SidebarItem href={pathname} icon={CreditCard} label="Billing" onClick={onClick} />
+       
+
+       
         <SidebarItem
-          href="mailto:support@example.com"
-          icon={MessageCircleQuestion}
-          label="Get Help"
+          href={DashboardLink}
+          icon={LayoutDashboard}
+          label="Dashboard"
         />
+     
       </ul>
     </div>
   );

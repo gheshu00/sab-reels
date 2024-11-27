@@ -13,7 +13,7 @@ export const useGetSabMedia = (page: number = 1) => {
       }
 
       const { data } = await response.json();
-      console.log(data);
+      // console.log(data);
       return data;
     },
     // keepPreviousData: true, // Keeps the previous page data during new fetches

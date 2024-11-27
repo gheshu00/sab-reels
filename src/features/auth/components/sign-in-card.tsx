@@ -18,6 +18,7 @@ import {
   CardContent,
   CardDescription,
 } from "@/components/ui/card";
+import { RegisterLink } from "../../../../constant";
 
 export const SignInCard = () => {
   const [loading, setLoading] = useState(false);
@@ -54,9 +55,9 @@ export const SignInCard = () => {
   return (
     <Card className="w-full h-full p-8">
       <CardHeader className="px-0 pt-0">
-        <CardTitle>Login to continue</CardTitle>
+        <CardTitle>Verify & Login</CardTitle>
         <CardDescription>
-          Use your email or another service to continue
+          Enter your SAB account details
         </CardDescription>
       </CardHeader>
       {!!error && (
@@ -92,7 +93,7 @@ export const SignInCard = () => {
           </Button>
         </form>
         <Separator />
-        <div className="flex flex-col gap-y-2.5">
+        {/* <div className="flex flex-col gap-y-2.5">
           <Button
             onClick={() => onProviderSignIn("google")}
             size="lg"
@@ -121,11 +122,11 @@ export const SignInCard = () => {
             )}
             Continue with Github
           </Button>
-        </div>
+        </div> */}
         <p className="text-xs text-muted-foreground">
           Don&apos;t have an account?{" "}
           <Link
-            href="https://sab-sigma.vercel.app/"
+            href={RegisterLink}
             onClick={() => setLoading(true)}
           >
             <span className="text-sky-700 hover:underline">Sign up</span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { CreditCard, Crown, Loader, LogOut } from "lucide-react";
+import { CreditCard, Crown, LayoutDashboard, Loader, LogOut } from "lucide-react";
 
 import { 
   Avatar, 
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { usePaywall } from "@/features/subscriptions/hooks/use-paywall";
 import { useBilling } from "@/features/subscriptions/api/use-billing";
+import { DashboardLink } from "../../../../constant";
 
 export const UserButton = () => {
   const { shouldBlock, triggerPaywall, isLoading } = usePaywall();
@@ -61,13 +62,16 @@ export const UserButton = () => {
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
-        <DropdownMenuItem
-          disabled={mutation.isPending}
-          onClick={onClick}
-          className="h-10"
+      <DropdownMenuItem
+
+        onClick={() => {
+          
+          window.open(DashboardLink, "_blank");
+        }}
+        className="h-10"
         >
-          <CreditCard className="size-4 mr-2" />
-          Billing
+        <LayoutDashboard className="size-4 mr-2" />
+        Dashboard
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="h-10" onClick={() => signOut()}>
