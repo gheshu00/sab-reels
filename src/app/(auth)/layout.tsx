@@ -13,7 +13,7 @@ const AuthLayout = async ({ children }: AuthLayoutProps) => {
   }
 
   return (
-    <div className="bg-[url(/bg.jpg)] bg-top bg-cover h-full flex flex-col">
+    <div className="bg-black bg-top bg-cover h-full flex flex-col">
       <div className="z-[4] h-full w-full flex flex-col items-center justify-center">
         <div className="h-full w-full md:h-auto md:w-[420px]">{children}</div>
       </div>
