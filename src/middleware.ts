@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // Define the list of allowed origins and methods
-const allowedOrigins = [
-  "http://127.0.0.1:5500",
-  "https://sab-sigma.vercel.app/",
-];
+const allowedOrigins = ["http://127.0.0.1:5500"];
 const allowedMethods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"];
 
 const publicRoutes = ["/api/sign-up", "/sign-up", "/sign-in"];

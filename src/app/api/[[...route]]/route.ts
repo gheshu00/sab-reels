@@ -9,6 +9,7 @@ import projects from "./projects";
 import subscriptions from "./subscriptions";
 import signup from "./signup";
 import canvas from "./canvas";
+import media from "./media";
 
 import authConfig from "@/auth.config";
 
@@ -33,6 +34,7 @@ const routes = app
   .route("/images", images)
   .route("/projects", projects)
   .route("/subscriptions", subscriptions)
+  .route("/media", media)
   .route("/sign-up", signup);
 
 export const GET = handle(app);

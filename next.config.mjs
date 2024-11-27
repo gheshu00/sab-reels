@@ -8,6 +8,10 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "app.scoutabasegroup.com",
+      },
+      {
+        protocol: "https",
         hostname: "utfs.io",
       },
       {

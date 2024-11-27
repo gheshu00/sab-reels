@@ -7,6 +7,7 @@ import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import { cookies } from "next/headers";
 
 import { db } from "@/db/drizzle";
 import { users } from "@/db/schema";
@@ -56,24 +57,55 @@ export default {
           return null;
         }
 
-        const passwordsMatch = await bcrypt.compare(
-          password,
-          user.password,
-        );
+        const passwordsMatch = await bcrypt.compare(password, user.password);
 
         if (!passwordsMatch) {
           return null;
         }
 
+        const response = await fetch(
+          `https://app.scoutabasegroup.com/?rest_route=/simple-jwt/v1/auth&email=${email}&password=${password}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (data.success === false) {
+          return null;
+        }
+
+        console.log(data);
+
+        const jwt = data.data.jwt;
+
+        if (jwt) {
+          // Set the JWT as a cookie
+          const cookieStore = cookies();
+          cookieStore.set("wp-jwt", jwt, {
+            httpOnly: true, // Ensure the cookie cannot be accessed by client-side scripts
+            secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+            path: "/", // Cookie is accessible throughout the app
+            // maxAge: 60 * 60 * 24 * 7, // 1 week expiration
+            sameSite: "strict", // Protect against CSRF attacks
+          });
+        }
+
+        console.log(jwt);
+
         return user;
       },
-    }), 
-    GitHub, 
-    Google
+    }),
+    GitHub,
+    Google,
   ],
   pages: {
     signIn: "/sign-in",
-    error: "/sign-in"
+    error: "/sign-in",
   },
   session: {
     strategy: "jwt",
@@ -88,10 +120,10 @@ export default {
     },
     jwt({ token, user }) {
       if (user) {
-        token.id = user.id;  
+        token.id = user.id;
       }
 
       return token;
-    }
+    },
   },
-} satisfies NextAuthConfig
+} satisfies NextAuthConfig;
