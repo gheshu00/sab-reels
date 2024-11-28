@@ -27,6 +27,7 @@ import { Table, TableRow, TableBody, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/hooks/use-confirm";
 import Link from "next/link";
+import { RenameDialog } from "./rename-dialog";
 
 export const ProjectsSection = () => {
   const [ConfirmDialog, confirm] = useConfirm(
@@ -141,14 +142,7 @@ export const ProjectsSection = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-60">
-                      {/* <DropdownMenuItem
-                        className="h-10 cursor-pointer"
-                        disabled={duplicateMutation.isPending}
-                        onClick={() => onCopy(project.id)}
-                      >
-                        <CopyIcon className="size-4 mr-2" />
-                        Make a copy
-                      </DropdownMenuItem> */}
+                      <RenameDialog projectId={project.id} />
                       <DropdownMenuItem
                         className="h-10 cursor-pointer"
                         disabled={removeMutation.isPending}
