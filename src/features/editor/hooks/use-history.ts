@@ -10,44 +10,60 @@ interface UseHistoryProps {
     height: number;
     width: number;
   }) => void;
-};
+}
 
 export const useHistory = ({ canvas, saveCallback }: UseHistoryProps) => {
   const [historyIndex, setHistoryIndex] = useState(0);
   const canvasHistory = useRef<string[]>([]);
   const skipSave = useRef(false);
+  const initialSaved = useRef(false); // Tracks if the initial valid state is saved
 
   const canUndo = useCallback(() => {
-    return historyIndex > 0;
+    if (!initialSaved.current) return historyIndex > 0; // Standard undo logic if no initial state is marked
+    return historyIndex > 1; // Prevent undoing beyond the first marked state
   }, [historyIndex]);
 
   const canRedo = useCallback(() => {
     return historyIndex < canvasHistory.current.length - 1;
   }, [historyIndex]);
 
-  const save = useCallback((skip = false) => {
-    if (!canvas) return;
+  const save = useCallback(
+    (skip = false) => {
+      if (!canvas) return;
 
-    const currentState = canvas.toJSON(JSON_KEYS);
-    const json = JSON.stringify(currentState);
+      const currentState = canvas.toJSON(JSON_KEYS);
+      const json = JSON.stringify(currentState);
 
-    if (!skip && !skipSave.current) {
-      canvasHistory.current.push(json);
-      setHistoryIndex(canvasHistory.current.length - 1);
-    }
+      const workspace = canvas
+        .getObjects()
+        .find((object) => object.name === "clip");
+      const height = workspace?.height || 0;
+      const width = workspace?.width || 0;
 
-    const workspace = canvas
-      .getObjects()
-      .find((object) => object.name === "clip");
-    const height = workspace?.height || 0;
-    const width = workspace?.width || 0;
+      // Check if the first valid state is being saved
+      if (
+        !initialSaved.current &&
+        height > 0 &&
+        width > 0 &&
+        json.length > 10
+      ) {
+        initialSaved.current = true; // Mark the first valid state as saved
+        canvasHistory.current.push(json); // Save it
+        setHistoryIndex(canvasHistory.current.length - 1);
+        saveCallback?.({ json, height, width });
+        return;
+      }
 
-    saveCallback?.({ json, height, width });
-  }, 
-  [
-    canvas,
-    saveCallback,
-  ]);
+      // Standard save logic
+      if (!skip && !skipSave.current) {
+        canvasHistory.current.push(json);
+        setHistoryIndex(canvasHistory.current.length - 1);
+      }
+
+      saveCallback?.({ json, height, width });
+    },
+    [canvas, saveCallback]
+  );
 
   const undo = useCallback(() => {
     if (canUndo()) {
@@ -55,9 +71,7 @@ export const useHistory = ({ canvas, saveCallback }: UseHistoryProps) => {
       canvas?.clear().renderAll();
 
       const previousIndex = historyIndex - 1;
-      const previousState = JSON.parse(
-        canvasHistory.current[previousIndex]
-      );
+      const previousState = JSON.parse(canvasHistory.current[previousIndex]);
 
       canvas?.loadFromJSON(previousState, () => {
         canvas.renderAll();
@@ -73,9 +87,7 @@ export const useHistory = ({ canvas, saveCallback }: UseHistoryProps) => {
       canvas?.clear().renderAll();
 
       const nextIndex = historyIndex + 1;
-      const nextState = JSON.parse(
-        canvasHistory.current[nextIndex]
-      );
+      const nextState = JSON.parse(canvasHistory.current[nextIndex]);
 
       canvas?.loadFromJSON(nextState, () => {
         canvas.renderAll();
@@ -85,7 +97,7 @@ export const useHistory = ({ canvas, saveCallback }: UseHistoryProps) => {
     }
   }, [canvas, historyIndex, canRedo]);
 
-  return { 
+  return {
     save,
     canUndo,
     canRedo,

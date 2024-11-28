@@ -234,6 +234,40 @@ const app = new Hono()
 
       return c.json({ data: { ...project, pages: projectPages } });
     }
+  )
+  .get(
+    "/read/:id",
+    verifyAuth(),
+    zValidator("param", z.object({ id: z.string() })),
+    async (c) => {
+      const auth = c.get("authUser");
+      const { id } = c.req.valid("param");
+  
+      if (!auth.token?.id) {
+        return c.json({ error: "Unauthorized" }, 401);
+      }
+  
+      // Fetch pages associated with the given project ID and user ID
+      const projectPages = await db
+        .select({
+          width: pages.width,
+          height: pages.height,
+          json: pages.json,
+          pageNumber: pages.pageNumber,
+        })
+        .from(pages)
+        .innerJoin(projects, eq(pages.projectId, projects.id)) // Ensure the pages belong to the requested project
+        .where(and(eq(projects.id, id), eq(projects.userId, auth.token.id)))
+        .orderBy(pages.pageNumber); // Sort by pageNumber in ascending order
+  
+      if (projectPages.length === 0) {
+        return c.json({ error: "Not found" }, 404);
+      }
+  
+      // Return only the pages array
+      return c.json({ data: projectPages });
+    }
   );
+  
 
 export default app;

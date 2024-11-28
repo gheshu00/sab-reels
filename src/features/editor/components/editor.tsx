@@ -297,12 +297,16 @@ export const Editor = ({
     };
   }, [isPageLoading, pageData?.json, init]);
 
+
+  
+
   //////////////////////////////////////////////
 
   return (
     <div className="h-full flex flex-col">
       <Navbar
         id={initialData.id}
+        name={initialData.name}
         editor={editor}
         activeTool={activeTool}
         onChangeActiveTool={onChangeActiveTool}
