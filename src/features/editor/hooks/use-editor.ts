@@ -32,6 +32,7 @@ import { useAutoResize } from "@/features/editor/hooks/use-auto-resize";
 import { useCanvasEvents } from "@/features/editor/hooks/use-canvas-events";
 import { useWindowEvents } from "@/features/editor/hooks/use-window-events";
 import { useLoadState } from "@/features/editor/hooks/use-load-state";
+import { useLoadImg } from "./use-load-img";
 
 const buildEditor = ({
   save,
@@ -54,6 +55,7 @@ const buildEditor = ({
   selectedObjects,
   strokeDashArray,
   setStrokeDashArray,
+  imgTest,
 }: BuildEditorProps): Editor => {
   const generateSaveOptions = () => {
     const { width, height, left, top } = getWorkspace() as fabric.Rect;
@@ -146,6 +148,7 @@ const buildEditor = ({
     canUndo,
     canRedo,
     autoZoom,
+    imgTest,
     getWorkspace,
     zoomIn: () => {
       let zoomRatio = canvas.getZoom();
@@ -632,19 +635,24 @@ export const useEditor = ({
 
   useWindowEvents();
 
-const { save, canRedo, canUndo, undo, redo, canvasHistory, setHistoryIndex } =
-  useHistory({
-    canvas,
-    saveCallback: (canvas) => {
-      if (saveCallback) {
-        saveCallback(canvas);
-      }
-    },
-  });
+  const { save, canRedo, canUndo, undo, redo, canvasHistory, setHistoryIndex } =
+    useHistory({
+      canvas,
+      saveCallback: (canvas) => {
+        if (saveCallback) {
+          saveCallback(canvas);
+        }
+      },
+    });
 
   const { copy, paste } = useClipboard({ canvas });
 
   const { autoZoom } = useAutoResize({
+    canvas,
+    container,
+  });
+
+  const { imgTest } = useLoadImg({
     canvas,
     container,
   });
@@ -668,10 +676,56 @@ const { save, canRedo, canUndo, undo, redo, canvasHistory, setHistoryIndex } =
   useLoadState({
     canvas,
     autoZoom,
+    imgTest,
     initialState,
     canvasHistory,
     setHistoryIndex,
   });
+
+  // const editor = useMemo(() => {
+  //   if (canvas) {
+  //     return buildEditor({
+  //       save,
+  //       undo,
+  //       redo,
+  //       canUndo,
+  //       canRedo,
+  //       autoZoom,
+  //       copy,
+  //       paste,
+  //       canvas,
+  //       fillColor,
+  //       strokeWidth,
+  //       strokeColor,
+  //       setFillColor,
+  //       setStrokeColor,
+  //       setStrokeWidth,
+  //       strokeDashArray,
+  //       selectedObjects,
+  //       setStrokeDashArray,
+  //       fontFamily,
+  //       setFontFamily,
+  //     });
+  //   }
+
+  //   return undefined;
+  // }, [
+  //   canRedo,
+  //   canUndo,
+  //   undo,
+  //   redo,
+  //   save,
+  //   autoZoom,
+  //   copy,
+  //   paste,
+  //   canvas,
+  //   fillColor,
+  //   strokeWidth,
+  //   strokeColor,
+  //   selectedObjects,
+  //   strokeDashArray,
+  //   fontFamily,
+  // ]);
 
   const editor = useMemo(() => {
     if (canvas) {
@@ -682,6 +736,7 @@ const { save, canRedo, canUndo, undo, redo, canvasHistory, setHistoryIndex } =
         canUndo,
         canRedo,
         autoZoom,
+        imgTest,
         copy,
         paste,
         canvas,
@@ -696,6 +751,21 @@ const { save, canRedo, canUndo, undo, redo, canvasHistory, setHistoryIndex } =
         setStrokeDashArray,
         fontFamily,
         setFontFamily,
+        // Add the `addImage` method to the editor
+        addImage: (url) => {
+          fabric.Image.fromURL(url, (img) => {
+            // Optional: Adjust image properties before adding to canvas
+            img.set({
+              left: 50, // Default position
+              top: 50, // Default position
+              scaleX: 0.5, // Scale factor
+              scaleY: 0.5, // Scale factor
+            });
+
+            // Add the image to the canvas
+            canvas.add(img);
+          });
+        },
       });
     }
 
@@ -707,6 +777,7 @@ const { save, canRedo, canUndo, undo, redo, canvasHistory, setHistoryIndex } =
     redo,
     save,
     autoZoom,
+    imgTest,
     copy,
     paste,
     canvas,

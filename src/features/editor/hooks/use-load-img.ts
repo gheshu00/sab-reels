@@ -26,18 +26,18 @@ const findScaleToFit = (
   return Math.min(scaleX, scaleY);
 };
 
-export const useAutoResize = ({ canvas, container }: UseAutoResizeProps) => {
+export const useLoadImg = ({ canvas, container }: UseAutoResizeProps) => {
   const [isLoading, setIsLoading] = useState(true);
 
-  const autoZoom = useCallback(() => {
+  const imgTest = useCallback(() => {
     if (!canvas || !container) return;
 
     const width = container.offsetWidth || 1200;
     const height = container.offsetHeight || 900;
     console.log(canvas);
     if (canvas && canvas.width && canvas.height) {
-      canvas.setWidth(width);
-      canvas.setHeight(height);
+      // canvas.setWidth(width);
+      // canvas.setHeight(height);
     }
 
     const center = canvas.getCenter();
@@ -96,11 +96,11 @@ export const useAutoResize = ({ canvas, container }: UseAutoResizeProps) => {
       setIsLoading(true);
 
       resizeObserver = new ResizeObserver(() => {
-        autoZoom();
+        imgTest();
       });
 
       resizeObserver.observe(container);
-      autoZoom();
+      imgTest();
     }
 
     return () => {
@@ -108,7 +108,7 @@ export const useAutoResize = ({ canvas, container }: UseAutoResizeProps) => {
         resizeObserver.disconnect();
       }
     };
-  }, [canvas, container, autoZoom]);
+  }, [canvas, container, imgTest]);
 
-  return { autoZoom, isLoading };
+  return { imgTest, isLoading };
 };

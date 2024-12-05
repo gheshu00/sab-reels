@@ -35,6 +35,7 @@ import { client } from "@/lib/hono";
 import { useCreatePage } from "@/features/projects/api/use-create-page";
 import { Loader } from "lucide-react";
 import { useDeletePage } from "@/features/projects/api/use-delete-page";
+import { Button } from "@/components/ui/button";
 
 type UpdatePageRequest = InferRequestType<
   (typeof client.api.canvas)[":id"]["$patch"]
@@ -202,12 +203,6 @@ export const Editor = ({
 
   // Use effect to save project name changes
 
-  useEffect(() => {
-    if (initialData?.name) {
-      debouncedUpdateProjectName(initialData.name);
-    }
-  }, [initialData?.name, debouncedUpdateProjectName]);
-
   //////////////////////////////////////////////
 
   const handleCreatePage = async () => {
@@ -278,7 +273,7 @@ export const Editor = ({
       try {
         const jsonData = JSON.parse(pageData.json);
         canvas.loadFromJSON(jsonData, () => {
-          canvas.renderAll();
+          canvas.renderAll(); // Ensure the canvas is rendered after loading JSON
           setIsInitialized(true);
         });
       } catch (error) {
@@ -297,8 +292,11 @@ export const Editor = ({
     };
   }, [isPageLoading, pageData?.json, init]);
 
-
-  
+  useEffect(() => {
+    if (editor) {
+      editor?.imgTest();
+    }
+  }, [containerRef, editor, canvasRef]);
 
   //////////////////////////////////////////////
 

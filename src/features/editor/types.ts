@@ -10,7 +10,7 @@ export const JSON_KEYS = [
   "linkData",
   "editable",
   "extensionType",
-  "extension"
+  "extension",
 ];
 
 export const filters = [
@@ -178,7 +178,7 @@ export interface EditorHookProps {
     height: number;
     width: number;
   }) => void;
-};
+}
 
 export type BuildEditorProps = {
   undo: () => void;
@@ -187,6 +187,7 @@ export type BuildEditorProps = {
   canUndo: () => boolean;
   canRedo: () => boolean;
   autoZoom: () => void;
+  imgTest: () => void;
   copy: () => void;
   paste: () => void;
   canvas: fabric.Canvas;
@@ -201,6 +202,7 @@ export type BuildEditorProps = {
   setStrokeColor: (value: string) => void;
   setStrokeWidth: (value: number) => void;
   setFontFamily: (value: string) => void;
+  addImage: (url: string, options?: Partial<fabric.Image>) => void;
 };
 
 export interface Editor {
@@ -214,6 +216,7 @@ export interface Editor {
   canUndo: () => boolean;
   canRedo: () => boolean;
   autoZoom: () => void;
+  imgTest: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
   getWorkspace: () => fabric.Object | undefined;
@@ -224,7 +227,7 @@ export interface Editor {
   onCopy: () => void;
   onPaste: () => void;
   changeImageFilter: (value: string) => void;
-  addImage: (value: string) => void;
+  addImage: (url: string, options?: Partial<fabric.Image>) => void;
   delete: () => void;
   changeFontSize: (value: number) => void;
   getActiveFontSize: () => number;
@@ -261,7 +264,7 @@ export interface Editor {
   getActiveStrokeWidth: () => number;
   getActiveStrokeDashArray: () => number[];
   selectedObjects: fabric.Object[];
-};
+}
 
 // ... existing code ...
 export interface UseAutoResizeProps {

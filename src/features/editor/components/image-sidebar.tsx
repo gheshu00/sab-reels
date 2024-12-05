@@ -85,6 +85,16 @@ export const ImageSidebar = ({
     }
   };
 
+  const handleAddImageToCanvas = (url: string) => {
+    const proxiedUrl = `/api/images/proxy?url=${url}`; // Get the proxied image URL
+    try {
+      editor?.addImage(proxiedUrl);
+    } catch (error) {
+      console.error(`Error adding image to canvas: ${url}`, error);
+      toast.error("Failed to add an image to the canvas.");
+    }
+  };
+
   const renderImages = () => {
     if (activeImageType === "sab") {
       if (isSabLoading) {
@@ -112,7 +122,7 @@ export const ImageSidebar = ({
             ?.filter((image: any) => image?.url?.full) // Only include images with a valid full URL
             .map((image: any) => (
               <button
-                onClick={() => editor?.addImage(image.url.full)}
+                onClick={() => handleAddImageToCanvas(image.url.full)}
                 key={image.id}
                 className="relative w-full h-[100px] group hover:opacity-75 transition bg-muted rounded-sm overflow-hidden border"
               >
@@ -154,12 +164,12 @@ export const ImageSidebar = ({
         <div className="grid grid-cols-2 gap-4">
           {galleryData.map((image: any) => (
             <button
-              onClick={() => editor?.addImage(image.urls.regular)}
+              onClick={() => handleAddImageToCanvas(image.url)}
               key={image.id}
               className="relative w-full h-[100px] group hover:opacity-75 transition bg-muted rounded-sm overflow-hidden border"
             >
               <img
-                src={image.url ||""}
+                src={image.url || ""}
                 alt={image.name || "Image"}
                 className="object-cover"
                 loading="lazy"
